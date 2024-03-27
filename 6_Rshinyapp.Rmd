@@ -1,0 +1,172 @@
+#Rshiny: toggle between participants and features with dropdown
+
+```{r}
+library(shiny)
+library(leaflet)
+library(dplyr)
+library(viridis)
+library(rsconnect)
+library(readxl)
+
+expmapdf_10s <- read_csv("D:/Datamost/ExperienceMapsDataset_over2_10sec.csv", guess_max = 100000)
+
+
+expmapdf_10s <- expmapdf_10s %>%
+  rename(
+    `Event: Delay` = Event_Delay_xs,
+    `Event: Disturbing people in the environment` = Event_Disturbing_people_xs,
+    `Event: Negative driving Behavior` = Event_Negative_Driving_xs,
+    `Event: Missing infrastructure` = Event_Infrastructure_xs,
+    `Event: Positive social interaction` = Event_Positive_Interaction_xs,
+    `Event: Media entertainment` = Event_Media_Entertainment_xs,
+    `Event: Destination or connection reached` = Event_Reached_xs,
+    `Event: Physical discomfort` = Event_Discomfort_xs,
+    `Event: Transportation is comfortable` = Event_Comfortable_xs,
+    `Event: Beautiful surroundings` = Event_Beautiful_xs
+  ) %>% mutate_at(vars(`Event: Delay`, `Event: Disturbing people in the environment`, `Event: Negative driving Behavior`, `Event: Missing infrastructure`, `Event: Positive social interaction`, `Event: Media entertainment`, `Event: Destination or connection reached`, `Event: Physical discomfort`, `Event: Transportation is comfortable`, `Event: Beautiful surroundings`), na_if,  0) %>%
+    mutate_at(vars(`Event: Delay`, `Event: Disturbing people in the environment`, `Event: Negative driving Behavior`, `Event: Missing infrastructure`, `Event: Positive social interaction`, `Event: Media entertainment`, `Event: Destination or connection reached`, `Event: Physical discomfort`, `Event: Transportation is comfortable`, `Event: Beautiful surroundings`), as.logical)
+
+
+load('coldspots.RData')
+load('hotspots.RData')
+#unique(expmapdf_10s$`Event: Delay`)
+
+
+participants <- c("All Participants", unique(expmapdf_10s$Participant),  "Overall Satisfaction Coldspot", "Overall Stress Hotspot")
+# Define UI
+ui <- fluidPage(
+  selectInput("participant", "Select Participant", choices = participants),
+  selectInput("layer", "Select Layer", choices = c("Heart Rate", "Stress", "HRV", "Satisfaction", "Event: Delay", "Event: Disturbing people in the environment", "Event: Negative driving Behavior", "Event: Missing infrastructure", "Event: Positive social interaction", "Event: Media entertainment", "Event: Destination or connection reached", "Event: Physical discomfort", "Event: Transportation is comfortable", "Event: Beautiful surroundings", "Overall Satisfaction Coldspot", "Overall Stress Hotspot")),
+  leafletOutput("map", height = "80vh"))
+  #verbatimTextOutput("debugInfo")
+
+
+# Define server logic
+server <- function(input, output, session) {
+  
+
+  # Filter data based on selected participant
+  filtered_data <- reactive({
+    if(input$participant == "All Participants") {
+      data <- expmapdf_10s# %>% filter(!is.na(HR_mad) | !is.na(stress_xs) | !is.na(HRV) | !is.na(satisfaction_journey_xs))#muss hier wirklich jede variable rein?
+    } else if (input$participant == "Overall Satisfaction Coldspot"){#28.2.dazu
+      data <- coldspots
+    } else if (input$participant == "Overall Stress Hotspot"){
+      data <- hotspots
+    }else {
+      data <- expmapdf_10s %>% filter(Participant == input$participant )#& (!is.na(HR_mad) | !is.na(stress_xs) | !is.na(HRV) | !is.na(satisfaction_journey_xs)))
+    }
+    return(data)
+  })
+
+  
+  colorX <- function(x) {
+    reactive({
+      if (input$layer == "Heart Rate") {
+        return(colorNumeric(palette = "viridis", domain = x$HR_mad_filtered, na.color = "transparent")(x$HR_mad_filtered))
+      } else if (input$layer == "Stress") {
+        return(colorNumeric(palette = "plasma", domain = x$stress_xs, na.color = "transparent")(x$stress_xs))
+      }else if (input$layer == "Satisfaction") {
+        return(colorNumeric(palette = "plasma", domain = x$satisfaction_journey_xs, na.color = "transparent")(x$satisfaction_journey_xs))
+      }else if (input$layer == "Event: Delay") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Delay`, na.color = "transparent")(x$`Event: Delay`))
+      }else if (input$layer == "Event: Disturbing people in the environment") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Disturbing people in the environment`, na.color = "transparent")(x$`Event: Disturbing people in the environment`))
+      }else if (input$layer == "Event: Negative driving Behavior") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Negative driving Behavior`, na.color = "transparent")(x$`Event: Negative driving Behavior`))
+      }else if (input$layer == "Event: Missing infrastructure") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Missing infrastructure`, na.color = "transparent")(x$`Event: Missing infrastructure`))
+      }else if (input$layer == "Event: Positive social interaction") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Positive social interaction`, na.color = "transparent")(x$`Event: Positive social interaction`))
+      }else if (input$layer == "Event: Media entertainment") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Media entertainment`, na.color = "transparent")(x$`Event: Media entertainment`))
+      }else if (input$layer == "Event: Destination or connection reached") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Destination or connection reached`, na.color = "transparent")(x$`Event: Destination or connection reached`))
+      }else if (input$layer == "Event: Physical discomfort") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Physical discomfort`, na.color = "transparent")(x$`Event: Physical discomfort`))
+      }else if (input$layer == "Event: Transportation is comfortable") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Transportation is comfortable`, na.color = "transparent")(x$`Event: Transportation is comfortable`))
+      }else if (input$layer == "Event: Beautiful surroundings") {
+        return(colorNumeric(palette = "red", domain = x$`Event: Beautiful surroundings`, na.color = "transparent")(x$`Event: Beautiful surroundings`))
+      }else if (input$layer == "Overall Satisfaction Coldspot") {
+        return(colorNumeric(palette = "red", domain = x$`Participant`, na.color = "transparent")(x$`Participant`))#28.2.dazu
+      }else if (input$layer == "Overall Stress Hotspot") {
+        return(colorNumeric(palette = "red", domain = x$`Participant`, na.color = "transparent")(x$`Participant`))#28.2.dazu
+      } else {#HRV
+        return(colorNumeric(palette = "plasma", domain = x$HRV, na.color = "transparent")(x$HRV))
+      }
+    })
+  }
+  
+output$map <- renderLeaflet({
+  data <- filtered_data()
+   
+  # Define the base map
+  map <- leaflet(data) %>%
+    addTiles() %>%
+    addCircleMarkers(
+      lng = ~Longitude, lat = ~Latitude,
+      color=colorX(data)(), # Assuming colorX is a reactive function that returns a color palette
+      fillOpacity =  0.8, radius =  5,
+      popup = ~paste("Participant:", Participant, "<br>Longitude:", Longitude, "<br>Latitude:", Latitude,
+                     "<br>Heart Rate:", HR_mad_filtered, "<br>Stress:", stress_xs, "<br>HRV:", HRV, "<br>Satisfaction:", satisfaction_journey_xs, "<br>Openly reported emotion:", emotion_open_xs)
+    )
+   
+  # LEGEND Determine color palette and labels based on the input layer
+  if (input$layer == "Heart Rate") {
+    pal <- colorNumeric(palette = "viridis", domain = data$HR_mad_filtered, na.color = "transparent")
+    values <- data$HR_mad_filtered
+    title <- "Heart Rate"
+    #group <- "HeartRateStressHRV"
+  } else if (input$layer == "Stress") {
+    pal <- colorNumeric(palette = "plasma", domain = data$stress_xs, na.color = "transparent")
+    values <- data$stress_xs
+    title <- "Stress"
+    #group <- "HeartRateStressHRV"
+  } else if (input$layer == "Satisfaction") {
+    pal <- colorNumeric(palette = "plasma", domain = data$satisfaction_journey_xs, na.color = "transparent")
+    values <- data$satisfaction_journey_xs
+    title <- "Satisfaction"
+    #group <- "HeartRateStressHRV"
+  } else if (input$layer %in% c("Event: Delay", "Event: Disturbing people in the environment", "Event: Negative driving Behavior", "Event: Missing infrastructure", "Event: Positive social interaction", "Event: Media entertainment", "Event: Destination or connection reached", "Event: Physical discomfort", "Event: Transportation is comfortable", "Event: Beautiful surroundings")){
+    pal <- colorNumeric(palette = "red", domain = data$`Event: Delay`, na.color = "transparent")
+    values <- data$`Event: Delay`
+    title <- "Delay"
+    #group <- "groupWithoutLegend"
+  } else {
+    pal <- colorNumeric(palette = "plasma", domain = data$HRV, na.color = "transparent")
+    values <- data$HRV
+    title <- "HRV"
+    #group <- "HeartRateStressHRV"
+  }
+   
+  
+  if (input$layer %in% c("Heart Rate", "Stress", "Satisfaction", "HRV")){
+    # Add the legend to the map
+  map <- map %>%
+    addLegend(
+      pal = pal, values = values, opacity =  1,
+      position = "bottomright", labFormat = labelFormat(),
+      title = title,
+      #group = group
+    ) 
+  }
+  #map <- map %>%
+  #  addLayersControl(
+  #    overlayGroups = c("HeartRateStressHRV", "groupWithoutLegend"),  # Control the visibility of both groups
+  #    options = layersControlOptions(collapsed = FALSE)
+  #  )
+   
+  return(map)
+})
+
+
+
+  
+}
+
+# Run the app
+shinyApp(ui, server)
+```
+
+```

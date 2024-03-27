@@ -1,0 +1,36 @@
+Permutation testing the heart rate values
+```{r}
+
+subset_data <- subset(hotspotdata, !is.na(HR_mad_filtered))$HR_mad_filtered
+rest_data <- subset(expmapdf, ! is.na(HR_mad_filtered))$HR_mad_filtered  # Replace this with the rest of your data
+
+# Define test statistic
+test_statistic <- function(data) {
+  mean(data, na.rm = TRUE)
+}
+
+# Compute the observed test statistic
+observed_statistic <- test_statistic(subset_data)
+
+# Set the number of permutations
+num_permutations <- 10000 
+
+# Initialize a vector to store the permuted statistics
+permuted_statistics <- numeric(num_permutations)
+
+# Perform the permutation test
+for (i in 1:num_permutations) {
+  # Shuffle the labels between subset and rest_data
+  permuted_data <- sample(rest_data, size = length(subset_data), replace = FALSE)#same length as colspotdata?
+  # Calculate the test statistic for the permuted data
+  permuted_statistics[i] <- test_statistic(permuted_data)
+  
+}
+
+# Calculate the p-value
+p_value <- mean(permuted_statistics <= observed_statistic)
+
+# Print the results
+print(paste("Observed test statistic:", observed_statistic))
+print(paste("Permutation-based p-value:", p_value))
+```

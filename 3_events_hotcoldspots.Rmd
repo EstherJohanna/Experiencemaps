@@ -1,0 +1,195 @@
+
+#find the data that belongs to a radius of 100m around the coldspot
+```{r}
+load('coldspots.RData')
+load('hotspots.RData')
+expmapdf <- read_csv("D:/Datamost/ExperienceMapsDataset_over2.csv", guess_max = 100000)
+
+
+# Given latitude and Euclidean distance in meters
+latitude <- 52.26709
+longitude <- 10.54056
+euclidean_distance_meters <- radius_of_hotcoldspots#100m
+# Calculate conversion factors for latitude and longitude distances
+latitude_to_meters <- distVincentySphere(c(0, latitude), c(0, latitude + 1))
+longitude_to_meters <- distVincentySphere(c(0, latitude), c(1, latitude))
+# Convert Euclidean distance to changes in latitude and longitude
+change_latitude <- euclidean_distance_meters / latitude_to_meters
+change_longitude <- euclidean_distance_meters / longitude_to_meters
+
+#choose one point per hotspot so that it's only one and not several data points in one area
+#sort by lon and if a datapoint is within radius_of_hotcoldspots meters are delete them
+
+# Function to calculate distance between each pair of points in the dataset
+calculate_distance <- function(lat1, lon1, lat2, lon2) {
+  distVincentySphere(c(lon1, lat1), c(lon2, lat2))
+}
+
+# Apply the function to calculate distances between all pairs of points
+distances <- outer(coldspots$Latitude, coldspots$Longitude, 
+                   Vectorize(calculate_distance), coldspots$Latitude, coldspots$Longitude)
+
+# Set diagonal elements (distance to itself) to a large value
+diag(distances) <- Inf
+
+# Find row and column indices where distances are less than radius_of_hotcoldspots
+close_points <- which(distances < radius_of_hotcoldspots, arr.ind = TRUE)
+
+# Keep only one of the close points (e.g., the first occurrence)
+to_remove <- close_points[close_points[, 1] > close_points[, 2], drop = FALSE ]
+
+to_remove <- as.matrix(to_remove)
+
+# Discard rows that are less than radius_of_hotcoldspots meters apart from one another
+filtered_coldspots <- coldspots[-to_remove[, 1], ]
+
+# Empty data frame to store filtered points
+coldspotdata <- data.frame()
+
+# Iterate over each point in filtered_hotspots
+for (i in 1:nrow(filtered_coldspots)) {
+  # Get latitude and longitude of the current point
+  coldspot_lat <- as.numeric(filtered_coldspots[i, "Latitude"])
+  coldspot_lon <- as.numeric(filtered_coldspots[i, "Longitude"])
+  
+  # Calculate distances between current hotspot and all points in expmapdf
+  distances <- apply(expmapdf, 1, function(row) {
+    calculate_distance(coldspot_lat, coldspot_lon, as.numeric(row["Latitude"]), as.numeric(row["Longitude"]))
+  })
+  
+  # Subset expmapdf based on whether each point falls within radius_of_hotcoldspots
+  coldspotdata <- rbind(coldspotdata, expmapdf[distances <= radius_of_hotcoldspots, ])
+}
+save(coldspotdata, file = "coldspotsdata.RData")
+```
+
+
+#count the events in coldspot
+```{r}
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+
+# Select the relevant columns for latitude, longitude, and event columns
+event_columns <- c("Event_Delay_xs", "Event_Disturbing_people_xs","Event_Negative_Driving_xs","Event_Infrastructure_xs" ,"Event_Positive_Interaction_xs" ,    "Event_Media_Entertainment_xs" ,"Event_Reached_xs" ,"Event_Discomfort_xs","Event_Comfortable_xs", "Event_Beautiful_xs")
+columns_to_select <- c("Latitude", "Longitude", event_columns)
+
+
+# Filter the rows where at least one "event" column has a value of 1
+filtered_coldspotdata <- coldspotdata %>%
+  filter(rowSums(.[event_columns] == 1, na.rm = TRUE) > 0) %>%
+  dplyr::select(all_of(columns_to_select))
+
+# Calculate the counts of event occurrences in each latitude-longitude area
+event_counts_cold <- filtered_coldspotdata %>%
+  mutate(across(event_columns, function(col) sum(col == "1", na.rm = TRUE)))
+event_counts_cold <- event_counts_cold[1,]
+
+# Convert the table to a data frame and reshape it into long format
+event_counts_df_long_cold <- melt(as.data.frame(event_counts_cold))
+# Subset the data to exclude Latitude and Longitude variables
+event_counts_df_long_subset_cold <- event_counts_df_long_cold %>%
+  filter(variable != "Latitude" & variable != "Longitude")
+
+# Plot the histogram using ggplot2
+coldcats <- ggplot(event_counts_df_long_subset_cold, aes(x = factor(variable), y = value)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Event Categories", y = "Amount reported")
+  
+
+unique(coldspotdata$emotion_open_xs[!is.na(coldspotdata$emotion_open_xs)])
+
+
+```
+
+
+
+
+
+
+#find the data that belongs to a radius of 100m around the hotspot
+```{r}
+# Given latitude and Euclidean distance in meters
+latitude <- 52.26709
+longitude <- 10.54056
+euclidean_distance_meters <- radius_of_hotcoldspots#100m
+# Calculate conversion factors for latitude and longitude distances
+latitude_to_meters <- distVincentySphere(c(0, latitude), c(0, latitude + 1))
+longitude_to_meters <- distVincentySphere(c(0, latitude), c(1, latitude))
+# Convert Euclidean distance to changes in latitude and longitude
+change_latitude <- euclidean_distance_meters / latitude_to_meters
+change_longitude <- euclidean_distance_meters / longitude_to_meters
+
+#choose one point per hotspot so that it's only one and not several data points in one area
+#sort by lon and if a datapoint is within radius_of_hotcoldspots meters are delete them
+
+# Function to calculate distance between each pair of points in the dataset
+calculate_distance <- function(lat1, lon1, lat2, lon2) {
+  distVincentySphere(c(lon1, lat1), c(lon2, lat2))
+}
+
+# Apply the function to calculate distances between all pairs of points
+distances <- outer(hotspots$Latitude, hotspots$Longitude, 
+                   Vectorize(calculate_distance), hotspots$Latitude, hotspots$Longitude)
+
+# Set diagonal elements (distance to itself) to a large value
+diag(distances) <- Inf
+
+# Find row and column indices where distances are less than radius_of_hotcoldspots
+close_points <- which(distances < radius_of_hotcoldspots, arr.ind = TRUE)
+
+# Keep only one of the close points (e.g., the first occurrence)
+to_remove <- as.matrix(to_remove)
+filtered_hotspots <- hotspots[-to_remove[, 1], ]
+
+
+# Empty data frame to store filtered points
+hotspotdata <- data.frame()
+
+# Iterate over each point in filtered_hotspots
+for (i in 1:nrow(filtered_hotspots)) {
+  # Get latitude and longitude of the current point
+  hotspot_lat <- as.numeric(filtered_hotspots[i, "Latitude"])
+  hotspot_lon <- as.numeric(filtered_hotspots[i, "Longitude"])
+  
+  # Calculate distances between current hotspot and all points in expmapdf
+  distances <- apply(expmapdf, 1, function(row) {
+    calculate_distance(hotspot_lat, hotspot_lon, as.numeric(row["Latitude"]), as.numeric(row["Longitude"]))
+  })
+  
+  # Subset expmapdf based on whether each point falls within radius_of_hotcoldspots
+  hotspotdata <- rbind(hotspotdata, expmapdf[distances <= radius_of_hotcoldspots, ])
+}
+
+save(hotspotdata, file = "hotspotsdata.RData")
+```
+
+#count the events around hotspot
+```{r}
+# Filter the rows where at least one "event" column has a value of 1
+filtered_hotspotdata <- hotspotdata %>%
+  filter(rowSums(.[event_columns] == 1, na.rm = TRUE) > 0) %>%
+  dplyr::select(all_of(columns_to_select))
+
+# Calculate the counts of "event" occurrences in each latitude-longitude area
+event_counts_hot <- filtered_hotspotdata %>%
+  mutate(across(event_columns, function(col) sum(col == "1", na.rm = TRUE)))
+
+event_counts_hot <- event_counts_hot[1,]
+
+# Convert the table to a data frame and reshape it into long format
+event_counts_df_long_hot <- reshape2::melt(as.data.frame(event_counts_hot))
+# Subset the data to exclude Latitude and Longitude variables
+event_counts_df_long_subset_hot <- event_counts_df_long_hot %>%
+  filter(variable != "Latitude" & variable != "Longitude")
+
+# Plot the histogram using ggplot2
+hotcats <- ggplot(event_counts_df_long_subset_hot, aes(x = factor(variable), y = value)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + labs(y = 'Amount reported', x = 'Event categories')
+
+unique(hotspotdata$emotion_open_xs[!is.na(hotspotdata$emotion_open_xs)])
+
+
+```

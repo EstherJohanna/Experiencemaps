@@ -1,0 +1,58 @@
+resmapling in R for the interactive maps
+```{r}
+library(readr)
+library(dplyr)
+library(lubridate)
+
+# Read the CSV file
+expmapdf <- read_csv("D:/Datamost/ExperienceMapsDataset_over2.csv", guess_max = 100000)
+
+# Convert 'Time' column to datetime
+expmapdf <- expmapdf %>%  mutate(Timestamp = ymd_hms(Timestamp))
+
+# Rename 'Modifided Activity' column to 'Activity'
+expmapdf <- expmapdf %>%   rename(Activity = `ModifiedActivity`)
+
+# Resampling and aggregation
+expmapdf_10s <- expmapdf %>%
+  mutate(Timestamp = floor_date(Timestamp, "10 seconds")) %>%
+  group_by(Timestamp, Participant, Activity) %>%
+  summarise(
+    HR_mad_filtered = mean(HR_mad_filtered, na.rm = TRUE),
+    HRV = mean(HRV, na.rm = TRUE),
+    stress_xs = mean(stress_xs, na.rm = TRUE),
+    satisfaction_journey_xs = mean(satisfaction_journey_xs, na.rm = TRUE),
+    Latitude = mean(Latitude, na.rm = TRUE),
+    Longitude = mean(Longitude, na.rm = TRUE),
+    Gender = mean(Gender_xs, na.rm = TRUE),
+    Age = mean(Age_xs, na.rm = TRUE),
+    Event_Delay_xs = if(all(is.na(Event_Delay_xs))) {0} else {max(Event_Delay_xs, na.rm = TRUE)},#I can take the max of was_passiert because it's a logical
+    Event_Disturbing_people_xs = if(all(is.na(Event_Disturbing_people_xs))) {0} else {max(Event_Disturbing_people_xs, na.rm = TRUE)},
+    Event_Negative_Driving_xs = if(all(is.na(Event_Negative_Driving_xs))) {0} else {max(Event_Negative_Driving_xs, na.rm = TRUE)},
+    Event_Infrastructure_xs = if(all(is.na(Event_Infrastructure_xs))) {0} else {max(Event_Infrastructure_xs, na.rm = TRUE)},
+    Event_Positive_Interaction_xs = if(all(is.na(Event_Positive_Interaction_xs))) {0} else {max(Event_Positive_Interaction_xs, na.rm = TRUE)},
+    Event_Media_Entertainment_xs = if(all(is.na(Event_Media_Entertainment_xs))) {0} else {max(Event_Media_Entertainment_xs, na.rm = TRUE)},
+    Event_Reached_xs = if(all(is.na(Event_Reached_xs))) {0} else {max(Event_Reached_xs, na.rm = TRUE)},
+    Event_Discomfort_xs = if(all(is.na(Event_Discomfort_xs))) {0} else {max(Event_Discomfort_xs, na.rm = TRUE)},
+    Event_Comfortable_xs = if(all(is.na(Event_Comfortable_xs))) {0} else {max(Event_Comfortable_xs, na.rm = TRUE)},
+    Event_Beautiful_xs = if(all(is.na(Event_Beautiful_xs))) {0} else {max(Event_Beautiful_xs, na.rm = TRUE)},
+    emotion_open_xs = toString(unique(na.omit(emotion_open_xs))),
+    Event_Free_xs = toString(unique(na.omit(Event_Free_xs))),
+    Mode_keepmoving = toString(unique(na.omit(Mode_keepmoving))),
+    ModeButton_xs = toString(unique(na.omit(ModeButton_xs))),
+    #Activity = if(all(is.na(was_passiert_12_xs))) {NaN} else {max(was_passiert_12_xs, na.rm = TRUE)} # This might need adjustment based on actual data structure
+  ) 
+
+glimpse(expmapdf)
+ggplot(expmapdf, aes(x = Timestamp, y = satisfaction_journey_xs)) + geom_point()
+ggplot(expmapdf_10s, aes(x = Timestamp, y = satisfaction_journey_xs)) + geom_point()
+
+ggplot(expmapdf, aes(x = Timestamp, y = Participant)) + geom_point()
+ggplot(expmapdf_10s, aes(x = Timestamp, y = Participant)) + geom_point()
+
+ggplot(expmapdf, aes(x = Timestamp, y = HR_mad_filtered)) + geom_point()
+ggplot(expmapdf_10s, aes(x = Timestamp, y = HR_mad_filtered)) + geom_point()
+
+write.csv(expmapdf_10s, file = "D:/Datamost/ExperienceMapsDataset_over2_10sec.csv", row.names = FALSE)
+
+```

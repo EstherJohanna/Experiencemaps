@@ -1,0 +1,65 @@
+
+#make a new column that only includes passive HR data
+```{r}
+library(dplyr)
+library(lubridate)
+library(readr)
+library(ggplot2)
+
+fpafod <- read_csv("D:/Datamost/ExperienceMapsDataset.csv", guess_max = 60000)
+fpafod$`ModifiedActivity`[fpafod$`ModifiedActivity` == 7] <- 'active'#source: https://docs.movisens.com/Algorithms/physical_activity/#inclination-inclinsationdown-inclinationforward-inclinationright
+fpafod$`ModifiedActivity`[fpafod$`ModifiedActivity` == 2] <- 'passive'
+
+# Convert 'Modifided Activity' to factor to ensure consistent comparisons
+fpafod$`ModifiedActivity` <- as.factor(fpafod$`ModifiedActivity`)
+
+# Track changes in 'Modifided Activity' and calculate time difference
+fpafod <- fpafod %>%
+  mutate(
+    activity_change = `ModifiedActivity` != lag(`ModifiedActivity`),
+    time_diff = Timestamp - lag(Timestamp)
+  )
+
+# Set HR_mad to NaN for 'active' and within the first minute after changing to 'passive'
+fpafod <- fpafod %>% 
+  mutate(HR_mad_filtered = case_when(
+    `ModifiedActivity` == 'active' | 
+    (`ModifiedActivity` == 'passive' & activity_change & time_diff <= minutes(1)) ~ NaN,
+    TRUE ~ HR_mad
+  ))
+
+write_csv(fpafod, file = "D:/Datamost/ExperienceMapsDataset.csv")
+
+```
+
+
+only take in data where more than 2 participants contribute
+```{r}
+
+fpafod <- read_csv("D:/Datamost/ExperienceMapsDataset.csv", guess_max = 60000)
+
+# Approximate value of 1 degree of latitude at the given latitude
+degrees_to_meters_latitude <- 1 / 111.32;  # In degrees/meter
+# Convert 50 meters to degrees for longitude (Note: This will not be as accurate as using Vincenty formula)
+degrees_to_meters_longitude <- 1 / (40075000.0 * cos(pi * 52.26590 / 180) / 360) ; # In degrees/meter
+# Precision in degrees for 100 meters
+precision_degrees <- 100 * degrees_to_meters_longitude;
+
+# Create new columns for longitude and latitude squares with the desired precision
+fpafod$LongitudeSquare <- floor(fpafod$Longitude / precision_degrees) * precision_degrees;
+fpafod$LatitudeSquare <- floor(fpafod$Latitude / precision_degrees) * precision_degrees;
+
+# Group the data by 'LongitudeSquare' and 'LatitudeSquare' and count the number of distinct participant categories in each group
+location_counts <- fpafod %>%
+  group_by(LongitudeSquare, LatitudeSquare) %>%
+  summarise(ParticipantCount = n_distinct(Participant));
+
+# Merge the participant counts back into the original data frame
+fpafod <- left_join(fpafod, location_counts, by = c('LongitudeSquare', 'LatitudeSquare'));
+
+# Filter data to include only squares with more than 10 participants
+fpafod_over5 <- fpafod %>% filter(ParticipantCount > 2);
+
+
+write.csv(fpafod_over5, file = "D:/Datamost/ExperienceMapsDataset_over2.csv", row.names = FALSE)
+```

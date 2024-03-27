@@ -1,0 +1,129 @@
+satisfaction coldspot
+```{r, echo=FALSE}
+#tutorial from: https://rpubs.com/quarcs-lab/spatial-autocorrelation
+
+radius_of_hotcoldspots <- 100
+
+#read data
+library(readr)
+expmapdf <- read_csv("D:/Datamost/ExperienceMapsDataset_over2.csv", guess_max = 100000)
+
+fpafod_satis <- subset(expmapdf, !is.na(satisfaction_journey_xs));
+fpafod_satis_geo <- fpafod_satis;
+
+#make data usable
+# Convert the data frame to a SpatialPointsDataFrame
+coordinates(fpafod_satis_geo) <- c("Longitude", "Latitude");
+proj4string(fpafod_satis_geo) <- CRS("+proj=longlat +datum=WGS84");
+
+
+#calculate a distance of 100 meters into lon lat measure units
+# Given latitude and Euclidean distance in meters
+latitude <- 52.26709
+euclidean_distance_meters <- radius_of_hotcoldspots
+# Calculate conversion factors for latitude and longitude distances
+latitude_to_meters <- distVincentySphere(c(0, latitude), c(0, latitude + 1))
+longitude_to_meters <- distVincentySphere(c(0, latitude), c(1, latitude))
+# Convert Euclidean distance to changes in latitude and longitude
+change_latitude <- euclidean_distance_meters / latitude_to_meters
+change_longitude <- euclidean_distance_meters / longitude_to_meters
+max_dist_in_longlat <- (change_latitude + change_longitude)/2
+
+
+## Find neighbors within the distance threshold
+nb <- dnearneigh(coordinates(fpafod_satis_geo), 0, max_dist_in_longlat)
+nb_lw <- nb2listw(nb, style = 'W', zero.policy=TRUE)
+
+#calculare local g
+local_g <- localG(fpafod_satis_geo$satisfaction_journey_xs, nb_lw);
+local_g1 <- cbind(fpafod_satis_geo@data, as.matrix(local_g));
+names(local_g1)[ncol(local_g1)] <- "gstat";
+fpafod_satis_geo$gstat <- local_g1$gstat;
+local_g1$Longitude <- fpafod_satis$Longitude;
+local_g1$Latitude <- fpafod_satis$Latitude;
+
+
+z_scores <- attr(local_g, "internals")[,4]
+p_values <- attr(local_g, "internals")[,5]
+
+
+fpafod_satis_geodf <- as.data.frame(fpafod_satis_geo);
+fpafod_satis_geodf$p_values <- p_values
+fpafod_satis_geodf$z_scores <- z_scores
+# Set the significance level for hotspot detection (e.g., 0.05)
+alpha <- 0.05/nrow(subset(fpafod_satis_geo, !is.na(satisfaction_journey_xs)))
+
+# Identify significant hotspots and coldspots based on p-values
+hotspots_satis <- subset(fpafod_satis_geodf, p_values <= alpha & z_scores > 0)
+coldspots <- subset(fpafod_satis_geodf, p_values <= alpha & z_scores < 0)
+
+```
+
+
+stress hotspot
+```{r}
+fpafod_stress <- subset(expmapdf, !is.na(stress_xs));
+fpafod_stress_geo <- fpafod_stress;
+
+
+
+#make data usable
+# Handle exactly same coordinates by adding slight noise
+#fpafod_filtered$Longitude <- fpafod_filtered$Longitude + runif(nrow(fpafod_filtered), -0.0001, 0.0001);
+#fpafod_filtered$Latitude <- fpafod_filtered$Latitude + runif(nrow(fpafod_filtered), -0.0001, 0.0001);
+# Convert the data frame to a SpatialPointsDataFrame
+coordinates(fpafod_stress_geo) <- c("Longitude", "Latitude");
+proj4string(fpafod_stress_geo) <- CRS("+proj=longlat +datum=WGS84");
+
+
+#calculate a distance of 100 meters into lon lat measure units
+# Given latitude and Euclidean distance in meters
+latitude <- 52.26709
+longitude <- 10.54056
+euclidean_distance_meters <- radius_of_hotcoldspots
+# Calculate conversion factors for latitude and longitude distances
+latitude_to_meters <- distVincentySphere(c(0, latitude), c(0, latitude + 1))
+longitude_to_meters <- distVincentySphere(c(0, latitude), c(1, latitude))
+# Convert Euclidean distance to changes in latitude and longitude
+change_latitude <- euclidean_distance_meters / latitude_to_meters
+change_longitude <- euclidean_distance_meters / longitude_to_meters
+max_dist_in_longlat <- (change_latitude + change_longitude)/2
+
+
+## Find neighbors within the distance threshold
+nb <- dnearneigh(coordinates(fpafod_stress_geo), 0, max_dist_in_longlat)
+nb_lw <- nb2listw(nb, style = 'W', zero.policy=TRUE)
+
+## Create a plot of the spatial data - zeigt nachbarn an? oder so? - mus in extra r script geöffnet werden
+#plot(fpafod_filtered)
+## Add the neighborhood information to the plot
+#plot(nb, coordinates(fpafod_filtered), add = TRUE, col = 'red')
+
+#calculare local g
+local_g <- localG(fpafod_stress_geo$stress_xs, nb_lw);
+local_g1 <- cbind(fpafod_stress_geo@data, as.matrix(local_g));
+names(local_g1)[ncol(local_g1)] <- "gstat";
+fpafod_stress_geo$gstat <- local_g1$gstat;
+local_g1$Longitude <- fpafod_stress$Longitude;
+local_g1$Latitude <- fpafod_stress$Latitude;
+
+
+z_scores <- attr(local_g, "internals")[,4]
+p_values <- attr(local_g, "internals")[,5]
+
+
+fpafod_stress_geodf <- as.data.frame(fpafod_stress_geo);
+fpafod_stress_geodf$p_values <- p_values
+fpafod_stress_geodf$z_scores <- z_scores
+# Set the significance level for hotspot detection (e.g., 0.05)
+alpha <- 0.05/nrow(subset(fpafod_satis_geo, !is.na(stress_xs)))
+
+# Identify significant hotspots and coldspots based on p-values
+hotspots <- subset(fpafod_stress_geodf, p_values <= alpha & z_scores > 0)
+coldspots_stress <- subset(fpafod_stress_geodf, p_values <= alpha & z_scores < 0)
+
+
+save(coldspots, file = 'coldspots.RData')
+save(hotspots, file = 'hotspots.RData')
+
+```
