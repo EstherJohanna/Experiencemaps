@@ -30,6 +30,25 @@ fpafod <- fpafod %>%
 
 write_csv(fpafod, file = "D:/Datamost/ExperienceMapsDataset.csv")
 
+
+
+
+```
+alternative to squares with more than 2 participants: choose square around study region
+```{r}
+df <- read_csv("D:/Datamost/ExperienceMapsDataset.csv", guess_max = 60000)
+
+df_studyarea <- subset(df,Longitude > 10.4731)
+df_studyarea <-subset(df_studyarea, Longitude < 10.5802)
+
+df_studyarea <-subset(df_studyarea, Latitude < 52.3293)
+df_studyarea <-subset(df_studyarea, Latitude > 52.1560)
+
+df_studyarea <- subset(df_studyarea,!is.na(Longitude))#neu 3.5.
+
+
+write.csv(df_studyarea, file = "D:/Datamost/ExperienceMapsDataset_studyarea.csv", row.names = FALSE)
+
 ```
 
 
@@ -37,6 +56,7 @@ only take in data where more than 2 participants contribute
 ```{r}
 
 fpafod <- read_csv("D:/Datamost/ExperienceMapsDataset.csv", guess_max = 60000)
+fpafod <- subset(fpafod,!is.na(Longitude))#neu 3.5.
 
 # Approximate value of 1 degree of latitude at the given latitude
 degrees_to_meters_latitude <- 1 / 111.32;  # In degrees/meter

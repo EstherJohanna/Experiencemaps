@@ -10,6 +10,7 @@ library(readxl)
 
 expmapdf_10s <- read_csv("D:/Datamost/ExperienceMapsDataset_over2_10sec.csv", guess_max = 100000)
 
+#expmapdf_10s[!is.na(expmapdf_10s$HR_mad_filtered),]
 
 expmapdf_10s <- expmapdf_10s %>%
   rename(
@@ -25,10 +26,11 @@ expmapdf_10s <- expmapdf_10s %>%
     `Event: Beautiful surroundings` = Event_Beautiful_xs
   ) %>% mutate_at(vars(`Event: Delay`, `Event: Disturbing people in the environment`, `Event: Negative driving Behavior`, `Event: Missing infrastructure`, `Event: Positive social interaction`, `Event: Media entertainment`, `Event: Destination or connection reached`, `Event: Physical discomfort`, `Event: Transportation is comfortable`, `Event: Beautiful surroundings`), na_if,  0) %>%
     mutate_at(vars(`Event: Delay`, `Event: Disturbing people in the environment`, `Event: Negative driving Behavior`, `Event: Missing infrastructure`, `Event: Positive social interaction`, `Event: Media entertainment`, `Event: Destination or connection reached`, `Event: Physical discomfort`, `Event: Transportation is comfortable`, `Event: Beautiful surroundings`), as.logical)
-
+save(expmapdf_10s, file = "expmapdf_10s.RData")
 
 load('coldspots.RData')
 load('hotspots.RData')
+load("expmapdf_10s.RData")
 #unique(expmapdf_10s$`Event: Delay`)
 
 

@@ -55,4 +55,16 @@ ggplot(expmapdf_10s, aes(x = Timestamp, y = HR_mad_filtered)) + geom_point()
 
 write.csv(expmapdf_10s, file = "D:/Datamost/ExperienceMapsDataset_over2_10sec.csv", row.names = FALSE)
 
+
+expmapdf[!is.na(expmapdf$HR_mad),]
+fpafod[!is.na(fpafod$HR_mad_filtered),]
+
 ```
+
+
+test if free entries are the same
+```{r}
+VPdata <- subset(expmapdf_10s, Participant == 2)$Event_Free_xs
+VPdata[!is.na(VPdata)]
+```
+

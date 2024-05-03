@@ -2,9 +2,9 @@
 ```{r}
  
 # Calculate the median
-median_value <- median(fpafod$`HR`, na.rm = TRUE)#Hr [1/min]_ecgMove4 #`Hr [1/min]_EcgMove4`
+median_value <- median(fpafod$`Hr [1/min]_EcgMove4`, na.rm = TRUE)#Hr [1/min]_ecgMove4 #`Hr [1/min]_EcgMove4`
 # Subtract the median from each value
-centered_values <- fpafod$`HR` - median_value
+centered_values <- fpafod$`Hr [1/min]_EcgMove4` - median_value
 # Calculate the MAD
 mad_value <- mad(centered_values, na.rm = TRUE)
 # Normalize the centered values by dividing by the MAD
@@ -14,5 +14,8 @@ fpafod$HR_mad <- normalized_values
 #throw out values that are more than 3 MAD different from the median
 fpafod$HR_mad <- ifelse(fpafod$HR_mad > 5, NA, fpafod$HR_mad)#changed this to value 5 with VP 52! (VP 53-60 had value 3)
 fpafod$HR_mad <- ifelse(fpafod$HR_mad < -5, NA, fpafod$HR_mad)
+
+write_csv(fpafod, file = "D:/Datamost/ExperienceMapsDataset.csv")
+
 
 ```
