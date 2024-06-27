@@ -31,28 +31,14 @@ fpafod <- fpafod %>%
 write_csv(fpafod, file = "D:/Datamost/ExperienceMapsDataset.csv")
 
 
+#plot of overall event categories for paper
+frequencies <- fpafod %>% select(c("Event_Delay_xs","Event_Disturbing_people_xs","Event_Negative_Driving_xs","Event_Infrastructure_xs","Event_Positive_Interaction_xs","Event_Media_Entertainment_xs","Event_Reached_xs","Event_Discomfort_xs","Event_Comfortable_xs","Event_Beautiful_xs","Event_Errands_xs", "Event_Other_xs")) %>% summarise_all(~sum(., na.rm = TRUE))
 
-
-```
-alternative to squares with more than 2 participants: choose square around study region
-```{r}
-df <- read_csv("D:/Datamost/ExperienceMapsDataset.csv", guess_max = 60000)
-
-df_studyarea <- subset(df,Longitude > 10.4731)
-df_studyarea <-subset(df_studyarea, Longitude < 10.5802)
-
-df_studyarea <-subset(df_studyarea, Latitude < 52.3293)
-df_studyarea <-subset(df_studyarea, Latitude > 52.1560)
-
-df_studyarea <- subset(df_studyarea,!is.na(Longitude))#neu 3.5.
-
-
-write.csv(df_studyarea, file = "D:/Datamost/ExperienceMapsDataset_studyarea.csv", row.names = FALSE)
+melt_frequencies <- reshape2::melt(frequencies, variable.name = 'EventType', value.name = 'Frequency')
+allfrequs <- ggplot(melt_frequencies, aes(x = EventType, y = Frequency)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 45, vjust = 0.95, hjust = 1))
 
 ```
-
-
-only take in data where more than 2 participants contribute
+choose study area: use complete data, find out until what borders more than 2 participants contribute to a square, choose that as max and min longitude and latitude.
 ```{r}
 
 fpafod <- read_csv("D:/Datamost/ExperienceMapsDataset.csv", guess_max = 60000)
@@ -78,8 +64,9 @@ location_counts <- fpafod %>%
 fpafod <- left_join(fpafod, location_counts, by = c('LongitudeSquare', 'LatitudeSquare'));
 
 # Filter data to include only squares with more than 10 participants
-fpafod_over5 <- fpafod %>% filter(ParticipantCount > 2);
-
-
+fpafod_over2 <- fpafod %>% filter(ParticipantCount > 2);
 write.csv(fpafod_over5, file = "D:/Datamost/ExperienceMapsDataset_over2.csv", row.names = FALSE)
+
 ```
+
+

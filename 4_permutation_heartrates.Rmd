@@ -21,7 +21,7 @@ permuted_statistics <- numeric(num_permutations)
 # Perform the permutation test
 for (i in 1:num_permutations) {
   # Shuffle the labels between subset and rest_data
-  permuted_data <- sample(rest_data, size = length(subset_data), replace = FALSE)#same length as colspotdata?
+  permuted_data <- sample(rest_data, size = length(subset_data), replace = FALSE)#same length as coldspotdata?
   # Calculate the test statistic for the permuted data
   permuted_statistics[i] <- test_statistic(permuted_data)
   
@@ -34,3 +34,4 @@ p_value <- mean(permuted_statistics <= observed_statistic)
 print(paste("Observed test statistic:", observed_statistic))
 print(paste("Permutation-based p-value:", p_value))
 ```
+

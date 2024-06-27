@@ -193,3 +193,27 @@ unique(hotspotdata$emotion_open_xs[!is.na(hotspotdata$emotion_open_xs)])
 
 
 ```
+plot of all the categories for paper
+```{r}
+#plot of overall event categories for paper
+frequencies <- fpafod %>% select(c("Event_Delay_xs","Event_Disturbing_people_xs","Event_Negative_Driving_xs","Event_Infrastructure_xs","Event_Positive_Interaction_xs","Event_Media_Entertainment_xs","Event_Reached_xs","Event_Discomfort_xs","Event_Comfortable_xs","Event_Beautiful_xs","Event_Errands_xs", "Event_Other_xs")) %>% summarise_all(~sum(., na.rm = TRUE))
+melt_frequencies <- reshape2::melt(frequencies, variable.name = 'EventType', value.name = 'Frequency')
+
+
+frequencies <- hotspotdata %>% dplyr::select(c("Event_Delay_xs","Event_Disturbing_people_xs","Event_Negative_Driving_xs","Event_Infrastructure_xs","Event_Positive_Interaction_xs","Event_Media_Entertainment_xs","Event_Reached_xs","Event_Discomfort_xs","Event_Comfortable_xs","Event_Beautiful_xs","Event_Errands_xs", "Event_Other_xs")) %>% summarise_all(~sum(., na.rm = TRUE))
+melt_hotfrequencies <- reshape2::melt(frequencies, variable.name = 'EventType', value.name = 'Frequency')
+
+frequencies <- coldspotdata %>% dplyr::select(c("Event_Delay_xs","Event_Disturbing_people_xs","Event_Negative_Driving_xs","Event_Infrastructure_xs","Event_Positive_Interaction_xs","Event_Media_Entertainment_xs","Event_Reached_xs","Event_Discomfort_xs","Event_Comfortable_xs","Event_Beautiful_xs","Event_Errands_xs", "Event_Other_xs")) %>% summarise_all(~sum(., na.rm = TRUE))
+melt_coldfrequencies <- reshape2::melt(frequencies, variable.name = 'EventType', value.name = 'Frequency')
+
+melt_frequencies$Area <- 'Overall'
+melt_hotfrequencies$Area <- 'Hotspot'
+melt_coldfrequencies$Area <- 'Coldspot'
+
+all_frequencies <- rbind(melt_frequencies,melt_hotfrequencies, melt_coldfrequencies)
+
+ggplot(all_frequencies, aes(x = EventType, y = Frequency )) + facet_wrap(vars(Area), ncol = 1, scales = 'free_y') + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 45, vjust = 1.1, hjust = 1.1)) + scale_x_discrete(labels = c("Event_Delay_xs" = "Delay", "Event_Disturbing_people_xs" = "Disturbing People", "Event_Negative_Driving_xs" = "Negative Driving", "Event_Infrastructure_xs" = "Infrastructure", "Event_Positive_Interaction_xs" = "Positive Interaction", "Event_Media_Entertainment_xs" = "Media Entertainment", "Event_Media_Entertainment_xs" = "Media Entertainment", "Event_Reached_xs" = "Reached", "Event_Discomfort_xs" = "Discomfort", "Event_Comfortable_xs" = "Comfortable", "Event_Beautiful_xs" = "Beautiful", "Event_Errands_xs" = "Errands", "Event_Other_xs" = "Others")) + xlab('Event Type')
+
+ggsave("D:/Datamost/EventcatsColdHotspots.eps", width = 5, height = 10)
+
+```

@@ -16,7 +16,7 @@ radius_of_hotcoldspots <- 100
 
 #read data
 library(readr)
-expmapdf <- read_csv("D:/Datamost/ExperienceMapsDataset_over2.csv", guess_max = 100000)#studyarea
+expmapdf <- read_csv("D:/Datamost/ExperienceMapsDataset_over2.csv", guess_max = 100000)#ExperienceMapsDataset_over2
 expmapdf <- subset(expmapdf,!is.na(Longitude))#neu 3.5.
 
 fpafod_satis <- subset(expmapdf, !is.na(satisfaction_journey_xs));

@@ -62,9 +62,5 @@ fpafod[!is.na(fpafod$HR_mad_filtered),]
 ```
 
 
-test if free entries are the same
-```{r}
-VPdata <- subset(expmapdf_10s, Participant == 2)$Event_Free_xs
-VPdata[!is.na(VPdata)]
-```
+
 
